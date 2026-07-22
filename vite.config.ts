@@ -12,7 +12,7 @@ export default defineConfig({
         name: 'Hours Ledger',
         short_name: 'Hours',
         description: 'A private, offline-first daily work hours ledger for one job.',
-        theme_color: '#5b3b7a',
+        theme_color: '#f3ebd9',
         background_color: '#f3ebd9',
         display: 'standalone',
         orientation: 'portrait-primary',

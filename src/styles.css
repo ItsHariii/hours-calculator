@@ -317,6 +317,11 @@ h1, h2, h3, p { margin-top: 0; }
   .mobile-page { padding-inline: 18px; }
 }
 
+@media (display-mode: standalone) and (max-width: 560px) {
+  html, body, #root, .app-shell { min-height: 100vh; background: var(--paper); }
+  .app-device { height: 100vh; background: var(--paper); }
+}
+
 @media (max-width: 370px) {
   .mobile-page { padding-inline: 14px; }
   .timer-readout { font-size: 40px; }
