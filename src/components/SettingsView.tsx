@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, Download, LocateFixed, MapPin, ShieldCheck, Upload } from 'lucide-react'
+import { Check, Download, LocateFixed, MapPin, RotateCcw, ShieldCheck, Upload } from 'lucide-react'
 import type { AppSettings, HoursBackup, WorkEntry } from '../types'
 import { exportBackupData, importBackupData, saveSettings, validateBackup } from '../lib/db'
 import { downloadBlob } from '../lib/export'
@@ -18,6 +18,8 @@ export function SettingsView({ settings, entries, workplaceStatus }: SettingsVie
   const [settingsError, setSettingsError] = useState('')
   const [backup, setBackup] = useState<HoursBackup | null>(null)
   const [importError, setImportError] = useState('')
+  const [bundledBusy, setBundledBusy] = useState(false)
+  const [bundledMsg, setBundledMsg] = useState('')
   const [locationBusy, setLocationBusy] = useState(false)
   const [locationError, setLocationError] = useState('')
   const [locationDiag, setLocationDiag] = useState<string[]>([])
@@ -124,6 +126,24 @@ export function SettingsView({ settings, entries, workplaceStatus }: SettingsVie
     setBackup(null)
   }
 
+  async function importBundledHours() {
+    setImportError('')
+    setBundledMsg('')
+    setBundledBusy(true)
+    try {
+      const response = await fetch(`${import.meta.env.BASE_URL}hours-import.json`)
+      if (!response.ok) throw new Error('missing')
+      const data = validateBackup(await response.json())
+      // stable per-date ids -> merge overwrites the same records, so re-tapping never duplicates
+      await importBackupData(data, 'merge')
+      setBundledMsg(`Imported ${data.entries.length} saved shifts.`)
+    } catch {
+      setImportError('Could not load the bundled hours. Refresh the app and try again.')
+    } finally {
+      setBundledBusy(false)
+    }
+  }
+
   return (
     <div className="mobile-page page-reveal settings-page">
       <header className="screen-title"><h1>Settings</h1></header>
@@ -181,9 +201,11 @@ export function SettingsView({ settings, entries, workplaceStatus }: SettingsVie
       <section className="setting-section data-settings">
         <span className="section-label">Data · {entries.length} entries</span>
         <div className="data-list">
+          <button type="button" className="restore-bundled" onClick={importBundledHours} disabled={bundledBusy}>{bundledBusy ? 'Importing…' : 'Restore my saved hours'} <RotateCcw size={16} /></button>
           <button onClick={downloadBackup}>Back up data <Download size={16} /></button>
           <label>Restore from backup <Upload size={16} /><input type="file" accept="application/json,.json" onChange={(event) => readBackup(event.target.files?.[0])} /></label>
         </div>
+        {bundledMsg ? <div className="import-success"><Check size={15} /> {bundledMsg}</div> : null}
         {importError ? <div className="form-error">{importError}</div> : null}
         {backup ? <div className="backup-preview"><strong>{backup.entries.length} entries found</strong><p>Backup from {new Date(backup.exportedAt).toLocaleString()}.</p><div><button onClick={() => importBackup('merge')}>Merge newest</button><button onClick={() => importBackup('replace')}>Replace all</button></div></div> : null}
       </section>

@@ -230,6 +230,9 @@ h1, h2, h3, p { margin-top: 0; }
 .data-list > button, .data-list > label { width: 100%; min-height: 50px; padding: 0 15px; display: flex; align-items: center; justify-content: space-between; border: 0; border-bottom: 1px solid rgba(91,59,122,.08); background: transparent; font-size: 14px; cursor: pointer; }
 .data-list > *:last-child { border-bottom: 0; }
 .data-list input { display: none; }
+.data-list > button.restore-bundled { color: var(--plum); font-weight: 650; }
+.data-list > button.restore-bundled:disabled { opacity: .55; }
+.import-success { margin-top: 10px; display: flex; align-items: center; gap: 6px; padding: 10px 13px; border-radius: 12px; background: rgba(76,141,90,.12); color: #2f6b3a; font-size: 13px; font-weight: 600; }
 .backup-preview { margin-top: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 13px; background: var(--card); }
 .backup-preview p { margin: 3px 0 10px; color: var(--muted); font-size: 12px; }
 .backup-preview > div { display: flex; gap: 7px; }
