@@ -1,8 +1,13 @@
 import { formatInTimeZone } from 'date-fns-tz'
-import type { AppSettings, Project, TimerState, WorkEntry } from '../types'
+import type { AppSettings, LogSource, Project, TimerState, WorkEntry } from '../types'
 import { db } from './db'
 
-export async function startTimer(settings: AppSettings, project?: Project, note = '') {
+interface TimerStartOptions {
+  source?: LogSource
+  workLocationId?: string
+}
+
+export async function startTimer(settings: AppSettings, project?: Project, note = '', options: TimerStartOptions = {}) {
   const timer: TimerState = {
     id: 'active',
     startAt: new Date().toISOString(),
@@ -13,6 +18,8 @@ export async function startTimer(settings: AppSettings, project?: Project, note 
     rateCents: project?.defaultRateCents ?? settings.defaultRateCents,
     currency: settings.currency,
     breaks: [],
+    source: options.source ?? 'manual',
+    workLocationId: options.workLocationId,
   }
   await db.timers.put(timer)
   return timer
@@ -71,6 +78,8 @@ export async function stopTimer(timer: TimerState): Promise<WorkEntry | null> {
     currency: timer.currency,
     createdAt: timestamp,
     updatedAt: timestamp,
+    source: timer.source,
+    workLocationId: timer.workLocationId,
   }
   await db.entries.add(entry)
   return entry

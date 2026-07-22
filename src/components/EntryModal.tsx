@@ -125,7 +125,15 @@ export function EntryModal({ open, settings, entries, existing, onDelete, onClos
 
     if (existing) {
       const replacement = entryFromDraft(draft, settings)
-      await updateEntry({ ...replacement, id: existing.id, createdAt: existing.createdAt, timezone: existing.timezone, currency: existing.currency })
+      await updateEntry({
+        ...replacement,
+        id: existing.id,
+        createdAt: existing.createdAt,
+        timezone: existing.timezone,
+        currency: existing.currency,
+        source: existing.source,
+        workLocationId: existing.workLocationId,
+      })
     } else await db.entries.add(entryFromDraft(draft, settings))
     onClose()
   }

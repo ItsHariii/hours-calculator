@@ -1,7 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import App from './App'
 import { db, ensureDatabase } from './lib/db'
+import { WORK_LOCATIONS } from './lib/geofence'
 
 describe('Hours Ledger app', () => {
   afterEach(cleanup)
@@ -43,5 +44,50 @@ describe('Hours Ledger app', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Today' }))
     expect(await screen.findByText(/Quick log to Hospital shift/i)).toBeInTheDocument()
     expect(screen.getByText('Hospital shift')).toBeInTheDocument()
+  })
+
+  it('automatically clocks in on arrival and clocks out after departure', async () => {
+    let watchPosition: PositionCallback | undefined
+    const geolocation = {
+      getCurrentPosition: vi.fn(),
+      watchPosition: vi.fn((success: PositionCallback) => {
+        watchPosition = success
+        return 7
+      }),
+      clearWatch: vi.fn(),
+    }
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: geolocation })
+    await db.settings.update('settings', { locationAutomationEnabled: true })
+    const app = render(<App />)
+
+    try {
+      await waitFor(() => expect(geolocation.watchPosition).toHaveBeenCalled())
+      const workplace = WORK_LOCATIONS[0]
+      const emit = async (latitude: number, longitude: number) => {
+        const position = {
+          coords: { latitude, longitude, accuracy: 12 },
+          timestamp: Date.now(),
+        } as GeolocationPosition
+        await act(async () => {
+          watchPosition?.(position)
+          await Promise.resolve()
+        })
+      }
+
+      await emit(workplace.latitude, workplace.longitude)
+      await emit(workplace.latitude, workplace.longitude)
+      await waitFor(async () => expect((await db.timers.get('active'))?.source).toBe('workplace'))
+
+      await db.timers.update('active', { startAt: new Date(Date.now() - 60 * 60_000).toISOString() })
+      await emit(workplace.latitude + 0.01, workplace.longitude)
+      await emit(workplace.latitude + 0.01, workplace.longitude)
+
+      await waitFor(async () => expect(await db.timers.get('active')).toBeUndefined())
+      const automaticEntry = (await db.entries.toArray()).find((entry) => entry.source === 'workplace')
+      expect(automaticEntry?.workLocationId).toBe(workplace.id)
+    } finally {
+      app.unmount()
+      Reflect.deleteProperty(navigator, 'geolocation')
+    }
   })
 })

@@ -1,5 +1,6 @@
 import type { AppSettings, Project, ReportResult, Tag, WorkEntry } from '../types'
 import { entryMinutes, formatDecimalHours, formatEntryTime, formatMinutes } from './time'
+import { workLocationById } from './geofence'
 
 function csvCell(value: string | number | undefined) {
   const text = value === undefined ? '' : String(value)
@@ -31,7 +32,7 @@ export function exportDetailedCsv(
   void tags
   const header = csvRow([
     'Date', 'Type', 'Start', 'End', 'Break minutes', 'Hours (H:MM)', 'Decimal hours',
-    'Job', 'Note', 'Hourly rate', 'Estimated pay', 'Timezone',
+    'Job', 'Note', 'Log source', 'Workplace', 'Hourly rate', 'Estimated pay', 'Timezone',
   ])
   const rows = report.entries.map((entry) => {
     const minutes = entryMinutes(entry)
@@ -47,6 +48,8 @@ export function exportDetailedCsv(
       formatDecimalHours(minutes),
       entry.projectId ? projectMap.get(entry.projectId) ?? settings.jobName : settings.jobName,
       entry.note,
+      entry.source === 'workplace' ? 'Automatic workplace' : 'Manual',
+      workLocationById(entry.workLocationId)?.address,
       entry.rateCents === undefined ? '' : (entry.rateCents / 100).toFixed(2),
       entry.rateCents === undefined ? '' : ((minutes * entry.rateCents) / 6000).toFixed(2),
       entry.timezone,

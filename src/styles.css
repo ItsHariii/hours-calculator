@@ -1,7 +1,7 @@
 :root {
   font-family: "Hanken Grotesk", sans-serif;
   color: #2e2823;
-  background: #c3b6d2;
+  background: #f3ebd9;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   --paper: #f3ebd9;
@@ -19,7 +19,7 @@
 
 * { box-sizing: border-box; }
 html, body, #root { min-width: 320px; min-height: 100%; }
-body { margin: 0; min-height: 100vh; background: #c3b6d2; -webkit-font-smoothing: antialiased; }
+body { margin: 0; min-height: 100vh; background: var(--paper); -webkit-font-smoothing: antialiased; }
 button, input, textarea, select { font: inherit; }
 button { border: 0; cursor: pointer; color: inherit; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid rgba(91,59,122,.35); outline-offset: 2px; }
@@ -30,7 +30,7 @@ h1, h2, h3, p { margin-top: 0; }
   display: grid;
   place-items: center;
   padding: 28px;
-  background: radial-gradient(125% 90% at 50% 0%, #ded4ea 0%, #c3b6d2 55%, #b3a4c6 100%);
+  background: var(--paper);
 }
 
 .app-device {
@@ -94,6 +94,7 @@ h1, h2, h3, p { margin-top: 0; }
 .timer-readout { color: var(--ink); font-size: clamp(43px, 12vw, 58px); line-height: 1; font-weight: 300; letter-spacing: .01em; font-variant-numeric: tabular-nums; }
 .job-pill { width: fit-content; display: flex; align-items: center; gap: 8px; margin-top: 17px; padding: 8px 14px; border-radius: 999px; background: #f0e8f7; color: #6a5c7a; font-size: 13px; font-weight: 600; }
 .job-pill i, .work-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--plum); flex: none; }
+.automatic-timer-label { display: flex; align-items: center; gap: 6px; margin: 9px 2px -2px; color: var(--plum); font-size: 11.5px; font-weight: 600; }
 .timer-note-input { width: 100%; margin-top: 13px; padding: 10px 2px; border: 0; border-bottom: 1px solid rgba(91,59,122,.2); background: transparent; color: var(--ink); font-size: 14.5px; }
 .timer-note-input::placeholder { color: #b8aa97; }
 .timer-actions { display: flex; gap: 9px; margin-top: 19px; }
@@ -101,6 +102,14 @@ h1, h2, h3, p { margin-top: 0; }
 .primary-action { flex: 1; color: #fff; background: var(--plum); box-shadow: 0 9px 20px -11px var(--plum); }
 .secondary-action { background: var(--lavender); color: var(--plum); }
 .icon-soft { width: 50px; border-radius: 14px; color: var(--plum); background: transparent; border: 1px solid var(--line); }
+
+.workplace-status-strip { width: 100%; min-height: 62px; display: grid; grid-template-columns: 34px minmax(0,1fr) 18px; align-items: center; gap: 9px; margin-top: 11px; padding: 10px 12px; border: 1px solid rgba(91,59,122,.13); border-radius: 15px; background: rgba(252,247,236,.72); color: var(--plum); text-align: left; }
+.workplace-status-strip > span:nth-child(2) { min-width: 0; display: grid; gap: 2px; }
+.workplace-status-strip strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; }
+.workplace-status-strip small { color: var(--muted); font-size: 10.5px; line-height: 1.3; }
+.workplace-status-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: var(--lavender); }
+.workplace-status-strip.inside .workplace-status-icon { color: white; background: var(--plum); }
+.workplace-status-strip.denied, .workplace-status-strip.error, .workplace-status-strip.unavailable { color: var(--rose); }
 
 .quick-log-section { margin-top: 26px; }
 .quick-log-section .section-label { margin: 0 4px 11px; }
@@ -192,6 +201,30 @@ h1, h2, h3, p { margin-top: 0; }
 .choice-row.two { grid-template-columns: repeat(2,1fr); }
 .choice-row button { padding: 11px 7px; border-radius: 12px; background: var(--lavender); color: #6a5c7a; font-size: 13px; font-weight: 650; }
 .choice-row button.active { color: white; background: var(--plum); }
+.workplace-automation-card { padding: 15px; border: 1px solid rgba(91,59,122,.14); border-radius: 18px; background: var(--card); }
+.workplace-automation-card.active { border-color: rgba(91,59,122,.32); box-shadow: inset 0 3px 0 rgba(91,59,122,.08); }
+.workplace-card-heading { display: grid; grid-template-columns: 38px 1fr; gap: 10px; align-items: start; }
+.workplace-card-heading > span { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: var(--plum); background: var(--lavender); }
+.workplace-card-heading strong { display: block; font-size: 14px; }
+.workplace-card-heading p { margin: 3px 0 0; color: var(--muted); font-size: 11.5px; line-height: 1.45; }
+.saved-workplaces { display: grid; gap: 6px; margin-top: 14px; padding: 10px 11px; border-radius: 13px; background: rgba(236,227,242,.55); }
+.saved-workplaces > div { display: grid; grid-template-columns: 18px 1fr; gap: 6px; align-items: center; color: var(--plum); }
+.saved-workplaces > div + div { padding-top: 6px; border-top: 1px solid rgba(91,59,122,.1); }
+.saved-workplaces span { display: grid; }
+.saved-workplaces strong { color: var(--ink); font-size: 11.5px; }
+.saved-workplaces small { color: var(--muted); font-size: 10.5px; }
+.location-live-status { display: grid; grid-template-columns: 8px 1fr; gap: 8px; align-items: center; margin-top: 11px; padding: 9px 10px; border-radius: 11px; color: #6a5c7a; background: rgba(236,227,242,.6); }
+.location-live-status > i { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.location-live-status.inside > i { background: var(--plum); box-shadow: 0 0 0 4px rgba(91,59,122,.11); }
+.location-live-status.denied > i, .location-live-status.error > i, .location-live-status.unavailable > i { background: var(--rose); }
+.location-live-status span { display: grid; gap: 1px; }
+.location-live-status strong { font-size: 11.5px; }
+.location-live-status small { color: var(--muted); font-size: 10px; }
+.enable-location, .disable-location { width: 100%; min-height: 43px; margin-top: 12px; padding: 10px 12px; border-radius: 12px; font-size: 12.5px; font-weight: 700; }
+.enable-location { color: white; background: var(--plum); }
+.disable-location { color: var(--plum); background: var(--lavender); }
+.enable-location:disabled, .disable-location:disabled { cursor: wait; opacity: .62; }
+.location-limit-note { margin: 8px 4px 0; color: var(--muted); font-size: 10.5px; line-height: 1.45; }
 .advanced-settings { margin: -5px 0 20px; }
 .advanced-settings summary { padding: 8px 4px 13px; color: var(--plum); font-size: 13px; font-weight: 650; cursor: pointer; }
 .save-settings { width: 100%; min-height: 49px; border-radius: 14px; display: flex; justify-content: center; align-items: center; gap: 7px; color: white; background: var(--plum); font-weight: 650; }

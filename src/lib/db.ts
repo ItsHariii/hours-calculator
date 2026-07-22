@@ -14,6 +14,7 @@ export const defaultSettings: AppSettings = {
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
   locale: navigator.language || 'en-US',
   currency: 'USD',
+  locationAutomationEnabled: false,
   updatedAt: now(),
 }
 
@@ -139,6 +140,8 @@ const entryBaseSchema = baseSchema.extend({
   note: z.string(),
   rateCents: z.number().optional(),
   currency: z.string(),
+  source: z.union([z.literal('manual'), z.literal('workplace')]).optional(),
+  workLocationId: z.string().optional(),
 })
 const entrySchema = z.discriminatedUnion('kind', [
   entryBaseSchema.extend({ kind: z.literal('duration'), durationMinutes: z.number().positive() }),
@@ -167,6 +170,7 @@ const backupSchema = z.object({
     locale: z.string(),
     currency: z.string(),
     defaultRateCents: z.number().optional(),
+    locationAutomationEnabled: z.boolean().default(false),
     updatedAt: z.string(),
   }),
 })

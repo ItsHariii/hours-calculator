@@ -1,20 +1,25 @@
 import { useEffect, useState } from 'react'
-import { Check, Download, ShieldCheck, Upload } from 'lucide-react'
+import { Check, Download, LocateFixed, MapPin, ShieldCheck, Upload } from 'lucide-react'
 import type { AppSettings, HoursBackup, WorkEntry } from '../types'
 import { exportBackupData, importBackupData, saveSettings, validateBackup } from '../lib/db'
 import { downloadBlob } from '../lib/export'
+import { WORK_LOCATIONS, workLocationById } from '../lib/geofence'
+import type { WorkplaceAutomationStatus } from '../hooks/useWorkplaceAutomation'
 
 interface SettingsViewProps {
   settings: AppSettings
   entries: WorkEntry[]
+  workplaceStatus: WorkplaceAutomationStatus
 }
 
-export function SettingsView({ settings, entries }: SettingsViewProps) {
+export function SettingsView({ settings, entries, workplaceStatus }: SettingsViewProps) {
   const [form, setForm] = useState(settings)
   const [saved, setSaved] = useState(false)
   const [settingsError, setSettingsError] = useState('')
   const [backup, setBackup] = useState<HoursBackup | null>(null)
   const [importError, setImportError] = useState('')
+  const [locationBusy, setLocationBusy] = useState(false)
+  const [locationError, setLocationError] = useState('')
 
   useEffect(() => setForm(settings), [settings])
 
@@ -36,6 +41,57 @@ export function SettingsView({ settings, entries }: SettingsViewProps) {
     const data = await exportBackupData()
     downloadBlob(JSON.stringify(data, null, 2), `hours-ledger-backup-${data.exportedAt.slice(0, 10)}.json`, 'application/json')
   }
+
+  async function enableLocationAutomation() {
+    setLocationError('')
+    if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+      setLocationError('Automatic logging needs the secure installed app or an HTTPS page.')
+      return
+    }
+    if (!('geolocation' in navigator)) {
+      setLocationError('This browser does not provide location access.')
+      return
+    }
+    setLocationBusy(true)
+    try {
+      await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 20_000,
+        })
+      })
+      const next = { ...form, jobName: form.jobName.trim() || 'Work', locationAutomationEnabled: true }
+      setForm(next)
+      await saveSettings(next)
+    } catch (error) {
+      const locationFailure = error as GeolocationPositionError
+      setLocationError(locationFailure.code === locationFailure.PERMISSION_DENIED
+        ? 'Location access was denied. Allow it in your browser or phone settings, then try again.'
+        : 'A reliable location was not available. Move near a window and try again.')
+    } finally {
+      setLocationBusy(false)
+    }
+  }
+
+  async function disableLocationAutomation() {
+    const next = { ...form, locationAutomationEnabled: false }
+    setForm(next)
+    await saveSettings(next)
+  }
+
+  const detectedWorkplace = workLocationById(workplaceStatus.locationId)
+  const locationStatusText = workplaceStatus.state === 'inside' && detectedWorkplace
+    ? `At ${detectedWorkplace.shortAddress}`
+    : workplaceStatus.state === 'checking'
+      ? 'Checking location…'
+      : workplaceStatus.state === 'denied'
+        ? 'Permission needed'
+        : workplaceStatus.state === 'low-accuracy'
+          ? 'Waiting for better GPS accuracy'
+          : workplaceStatus.state === 'error' || workplaceStatus.state === 'unavailable'
+            ? 'Location unavailable'
+            : 'Ready for your next arrival'
 
   async function readBackup(file?: File) {
     if (!file) return
@@ -65,6 +121,25 @@ export function SettingsView({ settings, entries }: SettingsViewProps) {
             <label><span>Job name</span><input value={form.jobName} onChange={(event) => setForm({ ...form, jobName: event.target.value })} placeholder="Work" /></label>
             <label><span>Hourly rate</span><div className="input-suffix"><input type="number" min="0" step="0.01" value={form.defaultRateCents === undefined ? '' : form.defaultRateCents / 100} onChange={(event) => setForm({ ...form, defaultRateCents: event.target.value ? Math.round(Number(event.target.value) * 100) : undefined })} placeholder="Optional" /><i>{form.currency}</i></div></label>
           </div>
+        </section>
+
+        <section className="setting-section workplace-settings">
+          <span className="section-label">Automatic workplace logging</span>
+          <div className={`workplace-automation-card ${form.locationAutomationEnabled ? 'active' : ''}`}>
+            <div className="workplace-card-heading">
+              <span><LocateFixed size={20} /></span>
+              <div><strong>{form.locationAutomationEnabled ? 'Arrival detection is on' : 'Clock in when you arrive'}</strong><p>Starts one shift at either workplace and finishes only an automatically started shift when you leave.</p></div>
+            </div>
+            <div className="saved-workplaces">
+              {WORK_LOCATIONS.map((location) => <div key={location.id}><MapPin size={15} /><span><strong>{location.shortAddress}</strong><small>{location.address.replace(`${location.shortAddress} `, '')}</small></span></div>)}
+            </div>
+            {form.locationAutomationEnabled ? <div className={`location-live-status ${workplaceStatus.state}`}><i /> <span><strong>{locationStatusText}</strong>{workplaceStatus.detail ? <small>{workplaceStatus.detail}</small> : null}</span></div> : null}
+            {locationError ? <div className="form-error">{locationError}</div> : null}
+            <button className={form.locationAutomationEnabled ? 'disable-location' : 'enable-location'} type="button" disabled={locationBusy} onClick={form.locationAutomationEnabled ? disableLocationAutomation : enableLocationAutomation}>
+              {locationBusy ? 'Checking permission…' : form.locationAutomationEnabled ? 'Turn off automatic logging' : 'Enable & check location'}
+            </button>
+          </div>
+          <p className="location-limit-note">Keep Hours Ledger open during the shift. Browser location checks may pause in the background and stop when the app is fully closed; they resume the next time you open it. Your location samples are never saved or uploaded.</p>
         </section>
 
         <section className="setting-section">

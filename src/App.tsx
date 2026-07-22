@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { BarChart3, CalendarRange, Check, Clock3, CloudOff, Download, Plus, RotateCcw, Settings2 } from 'lucide-react'
 import type { ViewName, WorkEntry } from './types'
@@ -9,6 +9,7 @@ import { ReportsView } from './components/ReportsView'
 import { SettingsView } from './components/SettingsView'
 import { TimesheetView } from './components/TimesheetView'
 import { TodayView } from './components/TodayView'
+import { useWorkplaceAutomation } from './hooks/useWorkplaceAutomation'
 
 interface InstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -39,6 +40,8 @@ export default function App() {
   const entries = useLiveQuery(() => db.entries.toArray(), []) ?? []
   const timer = useLiveQuery(() => db.timers.get('active'), [])
   const activeEntries = entries.filter((entry) => !entry.deletedAt)
+  const handleAutomationEvent = useCallback((message: string) => setToast({ message }), [])
+  const workplaceStatus = useWorkplaceAutomation({ settings, onEvent: handleAutomationEvent })
 
   useEffect(() => {
     ensureDatabase()
@@ -84,7 +87,14 @@ export default function App() {
 
   async function duplicateEntry(entry: WorkEntry) {
     const timestamp = new Date().toISOString()
-    await db.entries.add({ ...entry, id: crypto.randomUUID(), createdAt: timestamp, updatedAt: timestamp })
+    await db.entries.add({
+      ...entry,
+      id: crypto.randomUUID(),
+      source: 'manual',
+      workLocationId: undefined,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
     setToast({ message: 'Entry duplicated.' })
   }
 
@@ -113,10 +123,10 @@ export default function App() {
         {!online ? <div className="offline-banner"><CloudOff size={14} /> Offline · still saving</div> : null}
         {installPrompt ? <button className="install-chip" onClick={async () => { await installPrompt.prompt(); const choice = await installPrompt.userChoice; if (choice.outcome === 'accepted') setInstallPrompt(null) }}><Download size={14} /> Install</button> : null}
         <main className="main-canvas">
-          {view === 'today' ? <TodayView {...sharedViewProps} timer={timer} onQuickLog={quickLog} onOpenTimesheet={() => setView('timesheet')} /> : null}
+          {view === 'today' ? <TodayView {...sharedViewProps} timer={timer} workplaceStatus={workplaceStatus} onQuickLog={quickLog} onOpenTimesheet={() => setView('timesheet')} onOpenSettings={() => setView('settings')} /> : null}
           {view === 'timesheet' ? <TimesheetView {...sharedViewProps} /> : null}
           {view === 'reports' ? <ReportsView settings={settings} entries={activeEntries} /> : null}
-          {view === 'settings' ? <SettingsView settings={settings} entries={activeEntries} /> : null}
+          {view === 'settings' ? <SettingsView settings={settings} entries={activeEntries} workplaceStatus={workplaceStatus} /> : null}
         </main>
 
         <nav className="bottom-nav" aria-label="Primary navigation">

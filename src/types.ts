@@ -1,5 +1,6 @@
 export type EntryKind = 'duration' | 'interval'
 export type ReportGrouping = 'day' | 'week' | 'month'
+export type LogSource = 'manual' | 'workplace'
 
 export interface BreakInterval {
   startAt: string
@@ -19,6 +20,8 @@ interface WorkEntryBase {
   createdAt: string
   updatedAt: string
   deletedAt?: string
+  source?: LogSource
+  workLocationId?: string
 }
 
 export interface DurationEntry extends WorkEntryBase {
@@ -66,6 +69,8 @@ export interface TimerState {
   currency: string
   breaks: BreakInterval[]
   breakStartedAt?: string
+  source?: LogSource
+  workLocationId?: string
 }
 
 export interface AppSettings {
@@ -79,6 +84,7 @@ export interface AppSettings {
   locale: string
   currency: string
   defaultRateCents?: number
+  locationAutomationEnabled: boolean
   updatedAt: string
 }
 

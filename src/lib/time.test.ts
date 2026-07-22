@@ -13,6 +13,7 @@ const settings: AppSettings = {
   locale: 'en-US',
   currency: 'USD',
   defaultRateCents: 2000,
+  locationAutomationEnabled: false,
   updatedAt: '2026-07-22T00:00:00.000Z',
 }
 

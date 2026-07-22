@@ -1,19 +1,23 @@
-import { Plus } from 'lucide-react'
+import { ChevronRight, MapPin, Plus } from 'lucide-react'
 import type { AppSettings, TimerState, WorkEntry } from '../types'
 import { allocateEntryByDay, buildReport, formatMinutes, presetRange, todayIso } from '../lib/time'
 import { EntryRow } from './EntryRow'
 import { TimerCard } from './TimerCard'
+import type { WorkplaceAutomationStatus } from '../hooks/useWorkplaceAutomation'
+import { workLocationById } from '../lib/geofence'
 
 interface TodayViewProps {
   settings: AppSettings
   entries: WorkEntry[]
   timer?: TimerState
+  workplaceStatus: WorkplaceAutomationStatus
   onAdd: () => void
   onQuickLog: (minutes: number, note: string) => void
   onEdit: (entry: WorkEntry) => void
   onDuplicate: (entry: WorkEntry) => void
   onDelete: (entry: WorkEntry) => void
   onOpenTimesheet: () => void
+  onOpenSettings: () => void
 }
 
 const QUICK_LOGS = [
@@ -23,7 +27,7 @@ const QUICK_LOGS = [
   { label: '30 minutes', sub: 'Short work block', minutes: 30 },
 ]
 
-export function TodayView({ settings, entries, timer, onAdd, onQuickLog, onEdit, onDuplicate, onDelete, onOpenTimesheet }: TodayViewProps) {
+export function TodayView({ settings, entries, timer, workplaceStatus, onAdd, onQuickLog, onEdit, onDuplicate, onDelete, onOpenTimesheet, onOpenSettings }: TodayViewProps) {
   const today = todayIso()
   const weekRange = presetRange('this-week', settings.weekStartsOn)
   const week = buildReport(entries, { ...weekRange, grouping: 'day', projectIds: [], tagIds: [] }, settings)
@@ -34,6 +38,18 @@ export function TodayView({ settings, entries, timer, onAdd, onQuickLog, onEdit,
   const targetMinutes = Math.max(1, settings.weeklyTargetHours * 60)
   const progress = Math.min(100, (week.totalMinutes / targetMinutes) * 100)
   const remaining = Math.max(0, targetMinutes - week.totalMinutes)
+  const currentWorkplace = workLocationById(workplaceStatus.locationId)
+  const workplaceTitle = workplaceStatus.state === 'inside' && currentWorkplace
+    ? `At ${currentWorkplace.shortAddress}`
+    : workplaceStatus.state === 'denied'
+      ? 'Location permission needed'
+      : workplaceStatus.state === 'low-accuracy'
+        ? 'Improving location accuracy'
+        : workplaceStatus.state === 'checking'
+          ? 'Checking your location'
+          : workplaceStatus.state === 'error' || workplaceStatus.state === 'unavailable'
+            ? 'Location check unavailable'
+            : 'Watching both workplaces'
 
   return (
     <div className="mobile-page page-reveal">
@@ -48,6 +64,14 @@ export function TodayView({ settings, entries, timer, onAdd, onQuickLog, onEdit,
       </section>
 
       <TimerCard timer={timer} settings={settings} />
+
+      {settings.locationAutomationEnabled ? (
+        <button className={`workplace-status-strip ${workplaceStatus.state}`} onClick={onOpenSettings}>
+          <span className="workplace-status-icon"><MapPin size={17} /></span>
+          <span><strong>{workplaceTitle}</strong><small>{workplaceStatus.detail || (timer?.source === 'workplace' ? 'This shift will finish when you leave.' : 'Arrival and departure logging is on.')}</small></span>
+          <ChevronRight size={17} />
+        </button>
+      ) : null}
 
       <section className="quick-log-section">
         <span className="section-label">Quick log to {settings.jobName || 'Work'}</span>

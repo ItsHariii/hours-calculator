@@ -1,6 +1,7 @@
 import { Copy, Pencil, Trash2 } from 'lucide-react'
 import type { AppSettings, WorkEntry } from '../types'
 import { entryMinutes, formatEntryTime, formatMinutes } from '../lib/time'
+import { workLocationById } from '../lib/geofence'
 
 interface EntryRowProps {
   entry: WorkEntry
@@ -14,9 +15,10 @@ interface EntryRowProps {
 
 export function EntryRow({ entry, settings, onEdit, onDuplicate, onDelete, showDate = true, displayMinutes }: EntryRowProps) {
   const minutes = displayMinutes ?? entryMinutes(entry)
-  const label = entry.note.trim() || (entry.kind === 'interval' ? 'Work shift' : 'Hours worked')
+  const automaticLocation = entry.source === 'workplace' ? workLocationById(entry.workLocationId) : undefined
+  const label = entry.note.trim() || (automaticLocation ? `${automaticLocation.shortAddress} shift` : entry.kind === 'interval' ? 'Work shift' : 'Hours worked')
   const detail = entry.kind === 'interval'
-    ? `${formatEntryTime(entry.startAt, settings, entry.timezone)}–${formatEntryTime(entry.endAt, settings, entry.timezone)}`
+    ? `${formatEntryTime(entry.startAt, settings, entry.timezone)}–${formatEntryTime(entry.endAt, settings, entry.timezone)}${automaticLocation ? ' · Automatic' : ''}`
     : settings.jobName || 'Work'
 
   return (
