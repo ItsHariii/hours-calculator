@@ -20,6 +20,11 @@ export function SettingsView({ settings, entries, workplaceStatus }: SettingsVie
   const [importError, setImportError] = useState('')
   const [locationBusy, setLocationBusy] = useState(false)
   const [locationError, setLocationError] = useState('')
+  const [locationDiag, setLocationDiag] = useState<string[]>([])
+
+  function pushDiag(line: string) {
+    setLocationDiag((prev) => [...prev, `${new Date().toLocaleTimeString()} · ${line}`].slice(-8))
+  }
 
   useEffect(() => setForm(settings), [settings])
 
@@ -44,28 +49,36 @@ export function SettingsView({ settings, entries, workplaceStatus }: SettingsVie
 
   async function enableLocationAutomation() {
     setLocationError('')
+    const standalone = window.matchMedia('(display-mode: standalone)').matches
+      || (navigator as unknown as { standalone?: boolean }).standalone === true
+    pushDiag(`tap · secure=${window.isSecureContext} standalone=${standalone} geo=${'geolocation' in navigator}`)
     if (!window.isSecureContext && window.location.hostname !== 'localhost') {
       setLocationError('Automatic logging needs the secure installed app or an HTTPS page.')
+      pushDiag('blocked: not a secure context')
       return
     }
     if (!('geolocation' in navigator)) {
       setLocationError('This browser does not provide location access.')
+      pushDiag('blocked: no geolocation API')
       return
     }
     setLocationBusy(true)
+    pushDiag('calling getCurrentPosition…')
     try {
-      await new Promise<GeolocationPosition>((resolve, reject) => {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
           maximumAge: 0,
           timeout: 20_000,
         })
       })
+      pushDiag(`granted · acc=${Math.round(position.coords.accuracy)}m`)
       const next = { ...form, jobName: form.jobName.trim() || 'Work', locationAutomationEnabled: true }
       setForm(next)
       await saveSettings(next)
     } catch (error) {
       const locationFailure = error as GeolocationPositionError
+      pushDiag(`error · code=${locationFailure.code} msg=${locationFailure.message || 'none'}`)
       setLocationError(locationFailure.code === locationFailure.PERMISSION_DENIED
         ? 'Location access was denied. Allow it in your browser or phone settings, then try again.'
         : 'A reliable location was not available. Move near a window and try again.')
@@ -138,6 +151,7 @@ export function SettingsView({ settings, entries, workplaceStatus }: SettingsVie
             <button className={form.locationAutomationEnabled ? 'disable-location' : 'enable-location'} type="button" disabled={locationBusy} onClick={form.locationAutomationEnabled ? disableLocationAutomation : enableLocationAutomation}>
               {locationBusy ? 'Checking permission…' : form.locationAutomationEnabled ? 'Turn off automatic logging' : 'Enable & check location'}
             </button>
+            {locationDiag.length ? <pre className="location-diag">{locationDiag.join('\n')}</pre> : null}
           </div>
           <p className="location-limit-note">Keep Hours Ledger open during the shift. Browser location checks may pause in the background and stop when the app is fully closed; they resume the next time you open it. Your location samples are never saved or uploaded.</p>
         </section>

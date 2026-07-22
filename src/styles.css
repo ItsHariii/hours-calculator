@@ -256,6 +256,8 @@ h1, h2, h3, p { margin-top: 0; }
 }
 .bottom-nav > button:not(.nav-add) { height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; background: transparent; color: #aa9caf; font-size: 9.5px; font-weight: 650; }
 .bottom-nav > button.active { color: var(--plum); }
+.location-diag { margin: 4px 0 0; padding: 9px 11px; border-radius: 10px; background: rgba(46,40,35,.06); color: #4a3d33; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+
 .nav-add { width: 55px; height: 55px; align-self: start; justify-self: center; transform: translateY(-10px); display: grid; place-items: center; border-radius: 50%; color: white; background: var(--plum); box-shadow: 0 10px 22px -8px var(--plum); }
 
 .modal-backdrop { position: absolute; z-index: 50; inset: 0; display: flex; flex-direction: column; justify-content: flex-end; background: rgba(46,40,35,.4); animation: fade-in .18s ease; }
