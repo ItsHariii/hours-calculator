@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Check, Clock3, FileText, Minus, Plus, Rows3, Trash2, X } from 'lucide-react'
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
-import type { AppSettings, EntryDraft, WorkEntry } from '../types'
+import type { AppSettings, BreakInterval, EntryDraft, WorkEntry } from '../types'
 import { db, entryFromDraft, saveDrafts, updateEntry } from '../lib/db'
 import { parseBulkInput } from '../lib/parser'
 import { entryMinutes, formatMinutes, overlaps, parseDuration, todayIso } from '../lib/time'
@@ -109,15 +109,19 @@ export function EntryModal({ open, settings, entries, existing, onDelete, onClos
       const endAt = fromLocalInput(endLocal, activeTimezone)
       if (new Date(endAt) <= new Date(startAt)) return setError('End time must be after start time. Change the end date for overnight work.')
       const genericBreak = Number(breakMinutes || 0)
-      const breaks = []
-      if (isOvernight && genericBreak > 0) {
+      const preciseEngaged = isOvernight && genericBreak > 0
+      const breaks: BreakInterval[] = []
+      if (preciseEngaged) {
         if (!breakStart || !breakEnd) return setError('Overnight shifts need exact break start and end times.')
         const preciseStart = fromLocalInput(breakStart, activeTimezone)
         const preciseEnd = fromLocalInput(breakEnd, activeTimezone)
         if (new Date(preciseStart) < new Date(startAt) || new Date(preciseEnd) > new Date(endAt) || new Date(preciseEnd) <= new Date(preciseStart)) return setError('The break must sit entirely inside the shift.')
         breaks.push({ startAt: preciseStart, endAt: preciseEnd })
       }
-      draft = sharedDraft({ kind: 'interval', workDate: startLocal.slice(0, 10), startAt, endAt, breakMinutes: isOvernight ? 0 : genericBreak, breaks, tagIds: [], note: '' })
+      // Preserve timer/multi breaks (stored in breaks[]) when the precise-break UI wasn't used,
+      // so editing a timer-created shift doesn't silently wipe its break time and inflate hours/pay.
+      const nextBreaks = existing?.kind === 'interval' && !preciseEngaged ? existing.breaks : breaks
+      draft = sharedDraft({ kind: 'interval', workDate: startLocal.slice(0, 10), startAt, endAt, breakMinutes: isOvernight ? 0 : genericBreak, breaks: nextBreaks, tagIds: [], note: '' })
       const candidate = entryFromDraft(draft, settings)
       if (entryMinutes(candidate) <= 0) return setError('Break time must be shorter than the shift.')
       if (overlaps({ ...candidate, id: existing?.id ?? candidate.id }, entries) && !window.confirm('This overlaps an existing timed entry. Save it anyway?')) return

@@ -60,6 +60,9 @@ export function formatDecimalHours(minutes: number) {
   return (minutes / 60).toFixed(2)
 }
 
+export const payCentsFor = (minutes: number, rateCents?: number) =>
+  rateCents ? Math.round((minutes * rateCents) / 60) : 0
+
 export function formatMoney(cents: number, currency: string, locale = 'en-US') {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
@@ -187,7 +190,7 @@ export function buildReport(
       if (date < query.startDate || date > query.endDate || minutes <= 0) continue
       const existing = daysMap.get(date) ?? { date, minutes: 0, payCents: 0, entryIds: [] }
       existing.minutes += minutes
-      existing.payCents += entry.rateCents ? Math.round((minutes * entry.rateCents) / 60) : 0
+      existing.payCents += payCentsFor(minutes, entry.rateCents ?? settings.defaultRateCents)
       if (!existing.entryIds.includes(entry.id)) existing.entryIds.push(entry.id)
       daysMap.set(date, existing)
     }

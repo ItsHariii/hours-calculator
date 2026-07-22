@@ -46,7 +46,9 @@ export function timerElapsedMinutes(timer: TimerState, at = new Date()) {
     0,
   )
   const activeBreak = timer.breakStartedAt ? (at.getTime() - new Date(timer.breakStartedAt).getTime()) / 60_000 : 0
-  return Math.max(0, Math.floor(gross - closedBreaks - activeBreak))
+  // Round (not floor) so the live earnings estimate matches the minutes the entry
+  // is saved with (entryMinutes in time.ts rounds the start→end span).
+  return Math.max(0, Math.round(gross - closedBreaks - activeBreak))
 }
 
 export async function stopTimer(timer: TimerState): Promise<WorkEntry | null> {

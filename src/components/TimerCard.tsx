@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react'
 import { MapPin, Pause, Play, Square } from 'lucide-react'
 import type { AppSettings, TimerState } from '../types'
 import { db } from '../lib/db'
-import { pauseTimer, resumeTimer, startTimer, stopTimer } from '../lib/timer'
+import { pauseTimer, resumeTimer, startTimer, stopTimer, timerElapsedMinutes } from '../lib/timer'
+import { formatMoney, payCentsFor } from '../lib/time'
 import { workLocationById } from '../lib/geofence'
 
 interface TimerCardProps {
@@ -46,11 +47,14 @@ export function TimerCard({ timer, settings }: TimerCardProps) {
   const seconds = timer ? elapsedSeconds(timer, clock) : 0
   const status = timer?.breakStartedAt ? 'On break' : timer ? 'Clock running' : 'Ready to clock in'
   const automaticLocation = timer?.source === 'workplace' ? workLocationById(timer.workLocationId) : undefined
+  const liveRateCents = timer?.rateCents ?? settings.defaultRateCents
+  const livePayCents = timer ? payCentsFor(timerElapsedMinutes(timer, clock), liveRateCents) : 0
 
   return (
     <section className={`daily-timer ${timer ? 'timer-active' : ''}`} aria-live="polite">
       <div className="timer-status"><i className={timer && !timer.breakStartedAt ? 'pulse' : ''} /><span>{status}</span></div>
       <div className="timer-readout">{timerText(seconds)}</div>
+      {timer && liveRateCents ? <div className="timer-earnings">{formatMoney(livePayCents, settings.currency, settings.locale)} earned</div> : null}
       <div className="job-pill"><i />{settings.jobName || 'Work'}</div>
       {automaticLocation ? <div className="automatic-timer-label"><MapPin size={14} /> Started automatically at {automaticLocation.shortAddress}</div> : null}
       <input className="timer-note-input" value={note} onChange={(event) => changeNote(event.target.value)} placeholder="Add a note (optional)" aria-label="Timer note" />

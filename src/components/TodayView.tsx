@@ -1,6 +1,6 @@
 import { ChevronRight, MapPin, Plus } from 'lucide-react'
 import type { AppSettings, TimerState, WorkEntry } from '../types'
-import { allocateEntryByDay, buildReport, formatMinutes, presetRange, todayIso } from '../lib/time'
+import { allocateEntryByDay, buildReport, formatMinutes, formatMoney, payCentsFor, presetRange, todayIso } from '../lib/time'
 import { EntryRow } from './EntryRow'
 import { TimerCard } from './TimerCard'
 import type { WorkplaceAutomationStatus } from '../hooks/useWorkplaceAutomation'
@@ -35,6 +35,11 @@ export function TodayView({ settings, entries, timer, workplaceStatus, onAdd, on
     .map((entry) => ({ entry, minutes: allocateEntryByDay(entry).get(today) ?? 0 }))
     .filter((item) => item.minutes > 0)
   const todayMinutes = todayAllocation.reduce((sum, item) => sum + item.minutes, 0)
+  const hasRate = settings.defaultRateCents !== undefined
+  const todayPayCents = todayAllocation.reduce(
+    (sum, { entry, minutes }) => sum + payCentsFor(minutes, entry.rateCents ?? settings.defaultRateCents),
+    0,
+  )
   const targetMinutes = Math.max(1, settings.weeklyTargetHours * 60)
   const progress = Math.min(100, (week.totalMinutes / targetMinutes) * 100)
   const remaining = Math.max(0, targetMinutes - week.totalMinutes)
@@ -82,7 +87,7 @@ export function TodayView({ settings, entries, timer, workplaceStatus, onAdd, on
       </section>
 
       <section className="today-entries">
-        <div className="simple-section-heading"><h2>Logged today</h2><button onClick={onOpenTimesheet}>{formatMinutes(todayMinutes)}</button></div>
+        <div className="simple-section-heading"><h2>Logged today</h2><button onClick={onOpenTimesheet}>{formatMinutes(todayMinutes)}{hasRate ? <em> · {formatMoney(todayPayCents, settings.currency, settings.locale)}</em> : null}</button></div>
         {todayAllocation.length ? (
           <div className="soft-list">{todayAllocation.map(({ entry, minutes }) => <EntryRow key={entry.id} entry={entry} displayMinutes={minutes} settings={settings} onEdit={onEdit} onDuplicate={onDuplicate} onDelete={onDelete} showDate={false} />)}</div>
         ) : (
